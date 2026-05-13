@@ -14,6 +14,13 @@ cd pocs/oracle-manipulation && forge test -vvv
 # Run all PoCs
 forge test --match-path "pocs/*" -vvv
 
+
+Tools
+
+Foundry (Forge + Anvil)
+Solidity ^0.8.20
+Mainnet forking for realistic PoCs
+
 ## Foundry
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
