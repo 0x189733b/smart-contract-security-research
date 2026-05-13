@@ -1,22 +1,66 @@
-# Smart Contract Security Research
+## Foundry
 
-Security research & vulnerability discovery by **Adom Asare** — Computer Science student at the University of Ghana.  
-Actively competing in audit contests on **HackenProof**, **Code4rena** and **Sherlock**.
+**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
 
-## Featured Findings
+Foundry consists of:
 
-| # | Title                              | Severity | Protocol Type | Status     | PoC |
-|---|------------------------------------|----------|---------------|------------|-----|
-| 1 | Spot Price Oracle Manipulation     | High     | Lending       | Reported   | [→](findings/oracle-manipulation.md) |
-| 2 | `amountOutMin = 0` Sandwich Attack | Medium   | AMM           | Reported   | [→](findings/sandwich-attack.md) |
-| 3 | Fee-on-Transfer Vault Insolvency   | High     | Vault         | Reported   | [→](findings/fee-on-transfer.md) |
+- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
+- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
+- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
+- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
 
-## Setup & Running PoCs
+## Documentation
 
-```bash
-git clone https://github.com/0x189733b/smart-contract-security-research.git
-cd smart-contract-security-research
+https://book.getfoundry.sh/
 
-# Example: Run oracle manipulation PoC
-cd pocs/oracle-manipulation
-forge test -vvv
+## Usage
+
+### Build
+
+```shell
+$ forge build
+```
+
+### Test
+
+```shell
+$ forge test
+```
+
+### Format
+
+```shell
+$ forge fmt
+```
+
+### Gas Snapshots
+
+```shell
+$ forge snapshot
+```
+
+### Anvil
+
+```shell
+$ anvil
+```
+
+### Deploy
+
+```shell
+$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+```
+
+### Cast
+
+```shell
+$ cast <subcommand>
+```
+
+### Help
+
+```shell
+$ forge --help
+$ anvil --help
+$ cast --help
+```
